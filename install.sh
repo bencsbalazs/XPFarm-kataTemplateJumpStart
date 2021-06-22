@@ -21,6 +21,7 @@ git update-index --chmod=+x test
 # --- Initializing tests and complexity reporting ---
 # ---------------------------------------------------
 
+npm i chai
 npm i jest --save-dev
 npm i complexity-report --save-dev
 touch complexity-report.md
