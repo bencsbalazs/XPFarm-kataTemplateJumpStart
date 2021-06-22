@@ -9,19 +9,6 @@ packagename="$1"
 git commit -m "initial commit" --allow-empty
 npm init -y
 
-# -------------------------
-# --- Initializing jest ---
-# -------------------------
-
-npm i jest --save-dev
-node > _package.json << EOF
-const package = require('./package.json');
-package.scripts.test = 'jest --coverage';
-console.log(JSON.stringify(package, null, 2));
-EOF
-rm package.json
-mv _package.json package.json
-
 cat << EOF > test
 #!/bin/bash
 npm test -- --watchAll --collect-coverage
@@ -30,18 +17,16 @@ chmod a+x test
 git add test
 git update-index --chmod=+x test
 
-# -----------------------------------------
-# --- Initializing complexity reporting ---
-# -----------------------------------------
+# ---------------------------------------------------
+# --- Initializing tests and complexity reporting ---
+# ---------------------------------------------------
 
+npm i jest --save-dev
 npm i complexity-report --save-dev
+touch complexity-report.md
 
-node > _package.json << EOF
-const package = require('./package.json');
-package.scripts.complexity = 'cr src';
-EOF
-rm package.json
-mv _package.json package.json
+cat package.json | jq '.scripts.test = $v' --arg v 'jest --coverage' | sponge package.json
+cat package.json | jq '.scripts.complexity = $v' --arg v 'cr src' | sponge package.json
 
 cat << EOF > .complexrc
 {
@@ -143,7 +128,7 @@ cat > TechDebt.md <<EOL
 # Technical debt
 EOL
 
-cat > notes.md <<EOL
+cat > NOTES.md <<EOL
 # Notes
 
 > Pomodoro 1
@@ -153,12 +138,15 @@ cat > notes.md <<EOL
 > Pomodoro 2
 
 - Note
+
 > Pomodoro 3
 
 - Note
+
 > Pomodoro 4
 
 - Note
+
 EOL
 
 git add .
