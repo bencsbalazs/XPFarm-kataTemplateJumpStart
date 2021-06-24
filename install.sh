@@ -12,8 +12,45 @@ fi
 mkdir "$now-$packagename"
 cd "$now-$packagename"
 git init
-gh repo create -y git@github.com:bencsbalazs/"$now-$packagename".git
-npm init -y
+gh repo create -y --public git@github.com:bencsbalazs/"$now-$packagename".git
+cat << EOF > package.json
+{
+  "name": "${now}-${packagename}",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "complexity": "cr src",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bencsbalazs/${now}-${packagename}.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bencsbalazs/${now}-${packagename}/issues"
+  },
+  "homepage": "https://github.com/bencsbalazs/${now}-${packagename}#readme",
+  "dependencies": {
+    "chai": "^4.3.4"
+  },
+  "devDependencies": {
+    "complexity-report": "*",
+    "eslint": "^7.29.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.23.4",
+    "eslint-plugin-prettier": "^3.4.0",
+    "jest": "^27.0.5",
+    "prettier": "^2.3.1"
+  }
+}
+EOF
 
 # --- Create git actions ---
 
@@ -21,9 +58,6 @@ mkdir .github
 mkdir .github/workflows
 
 cat << EOF > .github/workflows/test.yml
-# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
-
 name: Testing
 
 on:
@@ -43,19 +77,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js 12.x
       uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 12.x
     - run: npm i
     - run: npm run test
 
 EOF
 
 cat << EOF > .github/workflows/lint.yml
-# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
-
 name: Linting
 
 on:
@@ -75,10 +106,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js 12.x
       uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 12.x
     - run: npm i
     - run: npm run lint
 
@@ -102,14 +133,8 @@ git update-index --chmod=+x test
 # --- Initializing tests and complexity reporting ---
 # ---------------------------------------------------
 
-npm i chai
-npm i --save-dev eslint jest complexity-report prettier eslint-config-prettier eslint-plugin-prettier eslint-config-airbnb-base eslint-plugin-import
+npm i
 touch complexity-report.md
-
-cat package.json | jq '.scripts.test = $v' --arg v 'jest --coverage' | sponge package.json
-cat package.json | jq '.scripts.complexity = $v' --arg v 'cr src' | sponge package.json
-cat package.json | jq '.scripts.test:watch = $v' --arg v 'jest --watch' | sponge package.json
-cat package.json | jq '.scripts.lint = $v' --arg v 'eslint .' | sponge package.json
 
 cat << EOF > .complexrc
 {
@@ -145,13 +170,14 @@ chmod a+x generate-complexity-report
 git add generate-complexity-report
 git update-index --chmod=+x generate-complexity-report
 
-cat << EOF > .eslitrc.json
+cat << EOF > .eslintrc.json
 {
   "env": {
     "es6":true,
     "browser": true,
     "commonjs": true,
-    "node": true
+    "node": true,
+    "jest": true
   },
   "extends": ["prettier", "airbnb-base", "eslint:recommended"],
   "parserOptions": {
@@ -200,20 +226,19 @@ git update-index --chmod=+x .git/hooks/pre-commit
 
 mkdir src
 cat > src/"$now-$packagename".js <<EOL
-const ${packagename} = () => {
-};
+const ${packagename} = () => {};
 
 module.exports = { ${packagename} };
 EOL
 
 mkdir __tests__
 cat > __tests__/"$now-$packagename".test.js <<EOL
-const { expect, it, describe } = require('chai');
-const { example1 } = require('../src/2021-06-24-example1');
+const { expect } = require('chai');
+const { ${packagename} } = require('../src/${now}-${packagename}');
 
 describe('User story 1', () => {
   it('', () => {
-    expect(example1()).equal(undefined);
+    expect(${packagename}()).equal(undefined);
   });
   it.skip('', () => {});
 });
@@ -222,20 +247,20 @@ describe('User story 2', () => {
   it.skip('', () => {});
   it.skip('', () => {});
 });
-
 EOL
 
 cat > README.md <<EOL
 # Exercise: ${now}-${packagename}
 
-|[![Node.js CI](https://github.com/bencsbalazs/${now}-${packagename}/actions/workflows/main.yml/badge.svg)](https://github.com/bencsbalazs/${now}-${packagename}/actions/workflows/main.yml)|||
+|[![Testing](https://github.com/bencsbalazs/${now}-${packagename}/actions/workflows/test.yml/badge.svg)](https://github.com/bencsbalazs/${now}-${packagename}/actions/workflows/test.yml)|[![Linting](https://github.com/bencsbalazs/${now}-${packagename}/actions/workflows/lint.yml/badge.svg)](https://github.com/bencsbalazs/${now}-${packagename}/actions/workflows/lint.yml)||
 
 > Installed with automatic script
 
 - Source file
 - Basic test file
-- Jest for testing (watch and coverage) `npm run test`, `npm run test:watch`
-- EsLint + Prettier for code style check `npm run lint`
+- Jest for testing (watch and coverage) 
+- EsLint + Prettier for code style check
+- Complexity check
 
 ## User story 1
 
@@ -276,6 +301,11 @@ cat > NOTES.md <<EOL
 - Note
 
 EOL
+
+#cat package.json | jq '.scripts.test = $v' --arg v 'jest --coverage' | sponge package.json
+#cat package.json | jq '.scripts.complexity = $v' --arg v 'cr src' | sponge package.json
+#cat package.json | jq '.scripts.test:watch = $v' --arg v 'jest --watch' | sponge package.json
+#cat package.json | jq '.scripts.lint = $v' --arg v 'eslint .' | sponge package.json
 
 git add .
 git commit -m "initialized repo with node & jest"
